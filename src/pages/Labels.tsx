@@ -3,6 +3,7 @@ import { FileDown, Printer, Trash2, ListPlus, Save } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { printerService } from '../lib/printer';
+import { loadDeviceCfg, printLabelsDevice, LABEL_METHODS } from '../lib/devicePrint';
 import { labelHtml, labelsJob, LABEL_CSS, type LabelCfg, type LabelItem } from '../lib/documents';
 import { Empty, Field, PageHeader, Select, Toggle, useSubmit, useUi } from '../components/ui';
 import ProductPicker from '../components/ProductPicker';
@@ -18,6 +19,7 @@ export default function Labels() {
   const [cfg, setCfg] = useState<LabelCfg>(() => ({ width_mm: 50, height_mm: 30, columns: 3, gap_mm: 2, font_size: 8, show_brand: true, show_model: true, show_price: true, show_sku: true, show_barcode: true, show_name: false, layout: 'a4', ...(settings.label ?? {}) }));
   const [items, setItems] = useState<(LabelItem & { id: number; copies: number })[]>([]);
   const { busy, run } = useSubmit();
+  const [printing, setPrinting] = useState(false);
   useEffect(() => { if (settings.label) setCfg((c) => ({ ...c, ...settings.label })); }, [settings.label]);
 
   const add = (p: any, copies = 1) => setItems((xs) => {
@@ -42,7 +44,9 @@ export default function Labels() {
       <PageHeader title="Mã vạch & In tem" subtitle="Thiết kế tem, xem trước và in một hoặc hàng loạt (PDF / trình duyệt)"
         actions={<>
           <button className="btn-outline" disabled={!expanded.length} onClick={() => printerService.downloadPdf(job()).catch(toast.error)}><FileDown size={16} /> Xuất PDF</button>
-          <button className="btn-primary" disabled={!expanded.length} onClick={() => printerService.print(job(), 'browser').catch(toast.error)}><Printer size={16} /> In {expanded.length} tem</button>
+          <button className="btn-outline" disabled={!expanded.length} onClick={() => printerService.print(job(), 'browser').catch(toast.error)}><Printer size={16} /> In qua trình duyệt</button>
+          <button className="btn-primary" disabled={!expanded.length || printing} title={LABEL_METHODS.find((m) => m.value === loadDeviceCfg(settings).label.method)?.label}
+            onClick={async () => { setPrinting(true); try { await printLabelsDevice(items, cfg, settings); toast.success(`Đã gửi ${expanded.length} tem tới máy in`); } catch (e) { toast.error(e); } finally { setPrinting(false); } }}><Printer size={16} /> In {expanded.length} tem</button>
         </>} />
       <div className="grid xl:grid-cols-[380px_minmax(0,1fr)] gap-5">
         <div className="space-y-5">

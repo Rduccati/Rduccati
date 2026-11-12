@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Banknote, CreditCard, Landmark, Minus, PauseCircle, Plus, Printer, ScanLine, Search, Tag, Trash2, UserPlus, Users, X, FileDown, CheckCircle2, Wallet, Lock } from 'lucide-react';
+import { Camera, Banknote, CreditCard, Landmark, Minus, PauseCircle, Plus, Printer, ScanLine, Search, Tag, Trash2, UserPlus, Users, X, FileDown, CheckCircle2, Wallet, Lock } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { LABELS, money } from '../lib/format';
 import { printerService } from '../lib/printer';
-import { receiptJob, type Paper } from '../lib/documents';
+import { receiptJob } from '../lib/documents';
+import { loadDeviceCfg, printReceiptDevice } from '../lib/devicePrint';
 import { Badge, cx, Field, Modal, MoneyInput, Select, Spinner, Toggle, useFetch, useSubmit, useUi } from '../components/ui';
 import CustomerForm from '../components/CustomerForm';
+import CameraScanner from '../components/CameraScanner';
 
 interface Serial { id: number; serial_number: string; condition: string; is_consignment: boolean; movement_number?: string }
 interface PosProduct { id: number; sku: string; barcode: string; name: string; brand_name?: string; model?: string; sale_price: number; promo_price: number | null; track_serial: boolean; serials: Serial[]; available: number; images: string[]; warranty_months: number }
@@ -91,17 +93,22 @@ export default function Pos() {
     else if (e.key === 'Enter') {
       e.preventDefault();
       const code = q.trim();
-      if (!code) return;
-      // Ưu tiên tra cứu chính xác (máy quét): serial / barcode / SKU
-      try {
-        const r = await api.get('/pos/lookup', { code, warehouse_id: warehouseId });
-        addProduct(r.product, r.serial_id);
-      } catch (err: any) {
-        if (err.status === 404 && results[hi]) addProduct(results[hi]);
-        else toast.error(err);
-      }
+      if (code) await scanCode(code, true);
     }
   };
+
+  /** Tra cứu chính xác (máy quét / camera): serial → barcode → SKU */
+  const scanCode = async (code: string, fallbackToResults = false) => {
+    try {
+      const r = await api.get('/pos/lookup', { code, warehouse_id: warehouseId });
+      addProduct(r.product, r.serial_id);
+    } catch (err: any) {
+      if (fallbackToResults && err.status === 404 && results[hi]) addProduct(results[hi]);
+      else toast.error(err);
+    }
+  };
+  const [camera, setCamera] = useState(false);
+  const onCameraResult = useCallback((code: string) => { setCamera(false); scanCode(code); }, [warehouseId, usedSerials]);
 
   // ------------------------------------------------------------ Tính tiền (mirror logic phía server)
   const subtotal = cart.lines.reduce((s, l) => s + l.price * l.qty - l.discount, 0);
@@ -185,12 +192,12 @@ export default function Pos() {
     setQ('');
     api.get('/pos/search', { q: '', warehouse_id: warehouseId }).then(setResults).catch(() => {});
     reloadShift();
-    if (settings.printer?.auto_print_after_sale) printReceipt(detail);
+    if (loadDeviceCfg(settings).receipt.auto) printReceipt(detail);
   };
 
-  const printReceipt = async (o: any, paper?: Paper) => {
+  const printReceipt = async (o: any) => {
     try {
-      await printerService.print(receiptJob(o, settings, paper), settings.printer?.driver);
+      await printReceiptDevice(o, settings, { reprint: o.print_count > 0 });
       await api.post(`/orders/${o.id}/printed`);
     } catch (e) { toast.error(e); }
   };
@@ -233,16 +240,17 @@ export default function Pos() {
   }, [cashNeeded]);
 
   return (
-    <div className="h-full flex flex-col lg:flex-row bg-ivory-100">
+    <div className="min-h-full lg:h-full flex flex-col lg:flex-row bg-ivory-100">
       {/* ============================================================ CỘT TRÁI: tìm kiếm + giỏ hàng */}
-      <section className="flex-1 min-w-0 flex flex-col min-h-0">
+      <section className="lg:flex-1 min-w-0 flex flex-col lg:min-h-0">
         <div className="bg-ink-900 px-3 sm:px-4 pt-3 pb-0">
           <div className="flex gap-2 items-center">
             <div className="relative flex-1">
               <ScanLine size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gold-400" />
-              <input ref={searchRef} autoFocus value={q} onChange={(e) => { setQ(e.target.value); setShowResults(true); }} onKeyDown={onSearchKey}
+              <input ref={searchRef} autoFocus={window.innerWidth >= 1024} value={q} onChange={(e) => { setQ(e.target.value); setShowResults(true); }} onKeyDown={onSearchKey}
                 onFocus={() => setShowResults(true)} onBlur={() => setTimeout(() => setShowResults(false), 180)}
-                placeholder="Quét mã vạch / nhập tên, SKU, Serial... (F3)" className="w-full h-11 rounded-xl bg-ink-800 border border-ink-600 pl-11 pr-20 text-ivory-50 placeholder:text-ink-400 focus:outline-none focus:border-gold-400" />
+                placeholder="Quét mã vạch / nhập tên, SKU, Serial... (F3)" className="w-full h-11 rounded-xl bg-ink-800 border border-ink-600 pl-11 pr-28 text-ivory-50 placeholder:text-ink-400 focus:outline-none focus:border-gold-400" />
+              <button type="button" onClick={() => setCamera(true)} title="Quét bằng camera" className="absolute right-[4.5rem] top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-gold-400 hover:bg-ink-700"><Camera size={18} /></button>
               <span className="absolute right-3 top-1/2 -translate-y-1/2">{searching ? <Spinner size={16} /> : <span className="kbd bg-ink-700 border-ink-600 text-ink-300">Enter</span>}</span>
               {showResults && results.length > 0 && (
                 <div className="absolute z-30 left-0 right-0 top-12 bg-white rounded-xl shadow-2xl border border-ivory-300 max-h-[60vh] overflow-y-auto scroll-thin">
@@ -279,9 +287,9 @@ export default function Pos() {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto scroll-thin p-3 sm:p-4">
+        <div className="lg:flex-1 lg:min-h-0 lg:overflow-y-auto scroll-thin p-3 sm:p-4">
           {cart.lines.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center text-ink-400 py-10">
+            <div className="lg:h-full flex flex-col items-center justify-center text-center text-ink-400 py-8 lg:py-10">
               <div className="w-16 h-16 rounded-2xl bg-white border border-ivory-300 flex items-center justify-center mb-4"><ScanLine size={28} className="text-gold-500" /></div>
               <div className="font-medium text-ink-600">Quét mã vạch hoặc tìm sản phẩm để bắt đầu</div>
               <div className="text-xs mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1">
@@ -340,8 +348,12 @@ export default function Pos() {
       </section>
 
       {/* ============================================================ CỘT PHẢI: khách hàng + thanh toán */}
-      <aside className="w-full lg:w-[400px] xl:w-[430px] shrink-0 bg-white border-l border-ivory-300 flex flex-col min-h-0 max-h-[60vh] lg:max-h-none">
-        <div className="flex-1 overflow-y-auto scroll-thin p-4 space-y-4">
+      <aside className="w-full lg:w-[400px] xl:w-[430px] shrink-0 bg-white border-t lg:border-t-0 lg:border-l border-ivory-300 flex flex-col lg:min-h-0">
+        <div className="lg:flex-1 lg:overflow-y-auto scroll-thin p-4 space-y-4">
+          <button className="lg:hidden w-full flex items-center justify-between rounded-xl bg-ivory-100 px-3 py-2 text-xs text-ink-600" onClick={() => setShiftModal(shift ? 'close' : 'open')}>
+            <span className="flex items-center gap-1.5"><Wallet size={14} /> {shift ? `Ca ${shift.code} · ${shift.order_count} đơn` : 'Chưa mở ca bán hàng'}</span>
+            <span className="font-semibold text-gold-700">{shift ? 'Đóng ca' : 'Mở ca'}</span>
+          </button>
           {/* Khách hàng */}
           <div>
             {cart.customer ? (
@@ -440,9 +452,9 @@ export default function Pos() {
           </div>
           <textarea className="input text-sm" rows={2} placeholder="Ghi chú đơn hàng..." value={cart.note} onChange={(e) => update((c) => ({ ...c, note: e.target.value }))} />
         </div>
-        <div className="p-4 border-t border-ivory-300 bg-white">
+        <div className="p-4 border-t border-ivory-300 bg-white sticky bottom-0 z-10">
           <button className="btn-gold w-full h-14 text-base font-semibold rounded-2xl" disabled={busy || !cart.lines.length} onClick={checkout}>
-            {busy ? <Spinner className="text-ink-900" /> : <>THANH TOÁN {money(total)} <span className="kbd bg-gold-200 border-gold-500">F9</span></>}
+            {busy ? <Spinner className="text-ink-900" /> : <>THANH TOÁN {money(total)} <span className="kbd bg-gold-200 border-gold-500 hidden lg:inline-flex">F9</span></>}
           </button>
           <div className="text-[11px] text-ink-400 text-center mt-2">Thu ngân: {user?.full_name}</div>
         </div>
@@ -478,15 +490,15 @@ export default function Pos() {
             {done.warranties?.length > 0 && <div className="mt-2 text-xs text-ink-400">Đã tạo {done.warranties.length} phiếu bảo hành điện tử</div>}
           </div>
           <div className="grid grid-cols-2 gap-2 mt-5">
-            <button className="btn-gold" onClick={() => printReceipt(done, 'K80')}><Printer size={16} /> In K80 <span className="kbd">Ctrl+P</span></button>
-            <button className="btn-outline" onClick={() => printReceipt(done, 'K58')}><Printer size={16} /> In K58</button>
+            <button className="btn-gold col-span-2 h-12" onClick={() => printReceipt(done)}><Printer size={16} /> In hóa đơn <span className="kbd">Ctrl+P</span></button>
             <button className="btn-outline col-span-2" onClick={() => printerService.downloadPdf(receiptJob(done, settings)).catch(toast.error)}><FileDown size={16} /> Tải hóa đơn PDF</button>
           </div>
         </Modal>
       )}
+      {camera && <CameraScanner onResult={onCameraResult} onClose={() => setCamera(false)} />}
       {shiftModal && <ShiftModal mode={shiftModal} shift={shift} onClose={() => setShiftModal(null)} onDone={() => { setShiftModal(null); reloadShift(); }} />}
       {/* Nút ca cho mobile */}
-      <button className="lg:hidden fixed bottom-24 right-4 z-20 btn-primary rounded-full shadow-xl" onClick={() => setShiftModal(shift ? 'close' : 'open')}><Wallet size={16} /> {shift ? 'Đóng ca' : 'Mở ca'}</button>
+
     </div>
   );
 }

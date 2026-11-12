@@ -13,6 +13,7 @@ import { router as salesRouter } from './routes/sales.ts';
 import { router as warrantyRouter } from './routes/warranty.ts';
 import { router as financeRouter } from './routes/finance.ts';
 import { router as attendanceRouter } from './routes/attendance.ts';
+import { router as printingRouter } from './routes/printing.ts';
 
 export const DEFAULT_ROLES = [
   { code: 'admin', name: 'Quản trị hệ thống', permissions: ['*'] },
@@ -66,7 +67,7 @@ export function createApp() {
   app.disable('x-powered-by');
   app.set('trust proxy', 'loopback');
   app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') ?? true }));
-  app.use(express.json({ limit: '5mb' }));
+  app.use(express.json({ limit: '40mb' }));
   app.use((_req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
@@ -87,6 +88,7 @@ export function createApp() {
   app.use('/api', warrantyRouter);
   app.use('/api', financeRouter);
   app.use('/api', attendanceRouter);
+  app.use('/api', printingRouter);
   app.use('/api', (_req, _res, next) => next(new AppError(404, 'API không tồn tại')));
 
   app.use('/uploads', express.static(path.join(DATA_DIR, 'uploads'), { maxAge: '30d' }));

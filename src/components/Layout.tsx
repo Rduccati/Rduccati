@@ -121,7 +121,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           <div className="font-display text-lg text-ivory-50 font-semibold">{storeName}</div>
           <div className="w-10" />
         </header>
-        <main className={cx('flex-1 min-h-0', isPos ? 'overflow-hidden' : 'overflow-y-auto scroll-thin')}>
+        <main className={cx('flex-1 min-h-0', isPos ? 'overflow-y-auto lg:overflow-hidden' : 'overflow-y-auto scroll-thin')}>
           {isPos ? children : <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-7">{children}</div>}
         </main>
       </div>

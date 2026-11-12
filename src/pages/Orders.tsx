@@ -6,6 +6,7 @@ import { useAuth } from '../lib/auth';
 import { dateTime, LABELS, money, today, addDays } from '../lib/format';
 import { printerService } from '../lib/printer';
 import { receiptJob } from '../lib/documents';
+import { printReceiptDevice } from '../lib/devicePrint';
 import { Badge, DateRange, Empty, ErrorBox, Field, InfoRow, Loading, Modal, PageHeader, Pagination, SearchInput, Select, useFetch, useSubmit, useUi } from '../components/ui';
 
 export const ORDER_TONE: Record<string, string> = { completed: 'green', cancelled: 'red', returned: 'amber', partial_returned: 'amber' };
@@ -77,9 +78,9 @@ export function OrderDetail({ id, onClose, onChanged, canCancel, canReturn }: { 
   const [note, setNote] = useState<string | null>(null);
   const { busy, run } = useSubmit();
 
-  const print = async (paper?: 'K80' | 'K58' | 'A5') => {
+  const print = async () => {
     try {
-      await printerService.print(receiptJob(o, settings, paper, o.print_count > 0), settings.printer?.driver);
+      await printReceiptDevice(o, settings, { reprint: o.print_count > 0 });
       await api.post(`/orders/${o.id}/printed`);
       reload();
     } catch (e) { toast.error(e); }
@@ -98,8 +99,7 @@ export function OrderDetail({ id, onClose, onChanged, canCancel, canReturn }: { 
         {canCancel && o.status === 'completed' && <button className="btn-outline text-red-600 mr-auto" onClick={cancel} disabled={busy}><Ban size={15} /> Hủy đơn</button>}
         {canReturn && ['completed', 'partial_returned'].includes(o.status) && <button className="btn-outline" onClick={() => setReturning(true)}><RotateCcw size={15} /> Trả hàng</button>}
         <button className="btn-outline" onClick={() => printerService.downloadPdf(receiptJob(o, settings)).catch(toast.error)}><FileDown size={15} /> PDF</button>
-        <button className="btn-outline" onClick={() => print('K58')}><Printer size={15} /> K58</button>
-        <button className="btn-primary" onClick={() => print('K80')}><Printer size={15} /> {o.print_count > 0 ? 'In lại hóa đơn' : 'In hóa đơn'}</button>
+        <button className="btn-primary" onClick={() => print()}><Printer size={15} /> {o.print_count > 0 ? 'In lại hóa đơn' : 'In hóa đơn'}</button>
       </>}>
       {loading && !o ? <Loading /> : o && (
         <div className="space-y-5">

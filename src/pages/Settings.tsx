@@ -5,6 +5,7 @@ import { useAuth } from '../lib/auth';
 import { addDays, dateTime, today } from '../lib/format';
 import { printerService } from '../lib/printer';
 import { receiptJob } from '../lib/documents';
+import PrinterSetup from '../components/PrinterSetup';
 import { Badge, Empty, Field, Loading, Modal, MoneyInput, PageHeader, Pagination, SearchInput, Select, Textarea, Toggle, cx, useFetch, useSubmit, useUi } from '../components/ui';
 
 type Sec = 'store' | 'invoice' | 'barcode' | 'printer' | 'inventory' | 'attendance' | 'finance' | 'promotions' | 'brands' | 'backup' | 'data' | 'account' | 'audit';
@@ -15,7 +16,7 @@ export default function Settings() {
     { key: 'store', label: 'Thông tin cửa hàng', show: can('settings.edit') },
     { key: 'invoice', label: 'Mẫu hóa đơn', show: can('settings.edit') },
     { key: 'barcode', label: 'Mã vạch & SKU', show: can('settings.edit') },
-    { key: 'printer', label: 'Máy in', show: can('settings.edit') },
+    { key: 'printer', label: 'Máy in & in thử', show: can('pos.sell', 'products.view') },
     { key: 'inventory', label: 'Kho & bảo dưỡng', show: can('settings.edit') },
     { key: 'attendance', label: 'Chấm công', show: can('settings.edit') },
     { key: 'finance', label: 'Số dư quỹ đầu kỳ', show: can('settings.edit') },
@@ -172,25 +173,7 @@ function InvoiceSec() {
 }
 
 function PrinterSec() {
-  const { v, setV, save, busy } = useSetting('printer');
-  return (
-    <Section title="Cấu hình máy in" desc="Giai đoạn hiện tại: in qua trình duyệt và PDF. Kiến trúc Printer Service đã sẵn sàng cho ESC/POS." onSave={() => save()} busy={busy}>
-      <div className="space-y-4">
-        <Field label="Phương thức in hóa đơn">
-          <Select value={v.driver ?? 'browser'} onChange={(e) => setV({ ...v, driver: e.target.value })} options={printerService.drivers.map((d) => ({ value: d.id, label: d.label + (d.ready ? '' : ' – chưa kết nối (giai đoạn sau)') }))} />
-        </Field>
-        <Toggle checked={!!v.auto_print_after_sale} onChange={(x) => setV({ ...v, auto_print_after_sale: x })} label="Tự động in hóa đơn sau khi thanh toán" />
-        <div className="rounded-2xl bg-ivory-100 p-4 text-sm text-ink-600 space-y-2">
-          <div className="font-medium text-ink-800">Kết nối máy in nhiệt ESC/POS (giai đoạn sau)</div>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <Field label="Kiểu kết nối dự kiến"><Select value={v.escpos_connection ?? 'none'} onChange={(e) => setV({ ...v, escpos_connection: e.target.value })} options={[{ value: 'none', label: 'Chưa xác định' }, { value: 'usb', label: 'USB' }, { value: 'lan', label: 'LAN (IP:9100)' }, { value: 'wifi', label: 'Wi-Fi' }, { value: 'bluetooth', label: 'Bluetooth' }]} /></Field>
-            <Field label="Địa chỉ (IP / tên thiết bị)"><input className="input" value={v.escpos_address ?? ''} onChange={(e) => setV({ ...v, escpos_address: e.target.value })} placeholder="VD: 192.168.1.50" /></Field>
-          </div>
-          <p className="text-xs text-ink-400">Thông tin được lưu sẵn. Khi có model máy in thật, bổ sung PrinterTransport (src/lib/printer.ts) – POS và mẫu hóa đơn không cần thay đổi. Hiện tại nếu chọn ESC/POS, hệ thống tự động quay về in qua trình duyệt.</p>
-        </div>
-      </div>
-    </Section>
-  );
+  return <PrinterSetup />;
 }
 
 function InventorySec() {

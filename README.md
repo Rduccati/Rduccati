@@ -35,7 +35,7 @@ Các máy khác trong cùng mạng LAN (máy bán hàng thứ 2, tablet, điện
 
 ```bash
 npm run dev        # API :3000 + giao diện Vite :5173 (hot reload)
-npm test           # 15 bài kiểm thử nghiệp vụ (PostgreSQL trong bộ nhớ)
+npm test           # 18 bài kiểm thử nghiệp vụ + mã hóa lệnh in (PostgreSQL trong bộ nhớ)
 npm run typecheck
 ```
 
@@ -84,10 +84,16 @@ Toàn bộ bộ test đã chạy đạt trên cả PGlite và PostgreSQL 16 th�
 - **Chấm công (kiểu Atwork)**: check-in/out có GPS và bán kính cho phép, ca làm việc, tính đi muộn/về sớm/giờ làm, bảng công tháng (Excel), điều chỉnh công, đơn xin nghỉ & duyệt.
 - **Cài đặt**: thông tin cửa hàng & logo, mẫu hóa đơn, mẫu tem, cấu hình barcode, máy in, kho, chấm công, khuyến mãi, thương hiệu, sao lưu/khôi phục, đổi mật khẩu, lịch sử hoạt động.
 
-## Máy in & thiết bị (giai đoạn sau)
+## Máy in & thiết bị
 
-`src/lib/printer.ts` là **Printer Service** độc lập: driver trình duyệt, driver PDF và driver ESC/POS (đã có bộ mã hóa lệnh ESC/POS). Khi có model máy in thật chỉ cần hiện thực `PrinterTransport` (WebUSB / WebSerial / TCP 9100 qua server / Bluetooth) và đăng ký bằng `registerEscPosTransport()` – màn hình POS và mẫu hóa đơn không phải sửa.
-Máy quét mã vạch USB/Bluetooth dạng "bàn phím" dùng được ngay với ô tìm kiếm POS.
+👉 Hướng dẫn kết nối & test từng bước: **[HUONG-DAN-MAY-IN.md](HUONG-DAN-MAY-IN.md)** (Xprinter X350B in tem, iMin M2 Pro in bill).
+
+- **In tem trực tiếp (TSPL):** máy tem cắm USB vào máy tính chủ. Máy chủ gửi lệnh RAW qua Windows Print Spooler (`server/routes/printing.ts`, không cần thư viện cài thêm). Linux/macOS dùng CUPS `lp -o raw`.
+- **In bill trực tiếp (ESC/POS):** qua máy tính chủ (máy bill USB), hoặc trên Android gửi sang app **RawBT** (iMin M2 Pro và các máy POS Android có máy in tích hợp).
+- Tem và bill được dựng thành **ảnh 1-bit** (`src/lib/raster.ts`), nên in tiếng Việt chuẩn trên mọi máy in nhiệt.
+- Mỗi thiết bị có cấu hình máy in riêng: **Cài đặt → Máy in & in thử**, có ảnh xem trước và nút in thử.
+- Dự phòng: in qua hộp thoại của trình duyệt (driver) và xuất PDF.
+- Quét mã vạch: máy quét USB/Bluetooth dạng bàn phím, hoặc **camera** trên Android (Chrome BarcodeDetector).
 
 ## Bảo mật
 
