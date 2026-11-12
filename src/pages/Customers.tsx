@@ -3,7 +3,7 @@ import { Cake, Edit3, FileSpreadsheet, MessageSquarePlus, Plus, Trash2, Users } 
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { date, dateTime, LABELS, money } from '../lib/format';
-import { Badge, Empty, ErrorBox, Field, InfoRow, Loading, Modal, MoneyInput, PageHeader, Pagination, SearchInput, Select, StatCard, Tabs, Textarea, useFetch, useSubmit, useUi } from '../components/ui';
+import { Badge, Empty, ErrorBox, Field, InfoRow, Loading, Modal, MoneyInput, PageHeader, Pagination, SearchInput, Select, StatCard, Tabs, useFetch, useSubmit, useUi } from '../components/ui';
 import CustomerForm from '../components/CustomerForm';
 import { OrderDetail, ORDER_TONE } from './Orders';
 

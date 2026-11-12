@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { AlertTriangle, ArrowDownToLine, ArrowLeftRight, ArrowUpFromLine, ClipboardCheck, FileSpreadsheet, HandCoins, Hourglass, Plus, SlidersHorizontal, Trash2, Wrench, PackageOpen, Undo2 } from 'lucide-react';
+import { AlertTriangle, ArrowDownToLine, ArrowLeftRight, ArrowUpFromLine, ClipboardCheck, FileSpreadsheet, HandCoins, Hourglass, SlidersHorizontal, Trash2, Wrench, PackageOpen, Undo2 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { addDays, date, dateTime, LABELS, money, today } from '../lib/format';

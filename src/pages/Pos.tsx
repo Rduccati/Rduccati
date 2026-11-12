@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Camera, Banknote, CreditCard, Landmark, Minus, PauseCircle, Plus, Printer, ScanLine, Search, Tag, Trash2, UserPlus, Users, X, FileDown, CheckCircle2, Wallet, Lock } from 'lucide-react';
+import { Camera, Banknote, CreditCard, Landmark, Minus, PauseCircle, Plus, Printer, ScanLine, Tag, Trash2, UserPlus, Users, X, FileDown, CheckCircle2, Wallet, Lock } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { LABELS, money } from '../lib/format';

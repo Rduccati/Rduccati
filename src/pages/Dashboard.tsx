@@ -4,7 +4,7 @@ import { AlertTriangle, Boxes, CalendarClock, Coins, Hourglass, Receipt, ShieldC
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { dateTime, LABELS, money, monthStart, shortMoney, today } from '../lib/format';
-import { Badge, DateRange, ErrorBox, Loading, PageHeader, StatCard, Tabs, useFetch } from '../components/ui';
+import { Badge, DateRange, ErrorBox, Loading, PageHeader, StatCard, useFetch } from '../components/ui';
 import RevenueChart from '../components/RevenueChart';
 
 const statusTone: Record<string, string> = { completed: 'green', cancelled: 'red', returned: 'amber', partial_returned: 'amber' };
